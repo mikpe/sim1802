@@ -9,6 +9,15 @@ Build
     $ make
     $ make install
 
+Run
+---
+
+    $ a18 priv/hello.asm -l hello.lst -o hello.hex
+    ...
+    No Errors
+    $ bin/sim1802 hello.hex
+    HELO
+
 Dependencies
 ------------
 

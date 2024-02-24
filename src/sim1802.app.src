@@ -1,0 +1,10 @@
+%%% -*- erlang -*-
+
+{application, sim1802,
+ [{description, "Simulator for the RCA CDP1802 processor"},
+  {vsn, git},
+  {registered, []},
+  {applications, [kernel, stdlib]},
+  {env, []},
+  {modules, []}
+ ]}.

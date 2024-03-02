@@ -24,7 +24,11 @@
 ;;;	SEP	R4
 ;;;	BYTE	HIGH(CALLEE)
 ;;;	BYTE	LOW(CALLEE)
-;;;	;; POST: returns here, P=3, X=2
+;;; RETADDR
+;;;	;; POST: returns here, P=3, X=2, LINK and SP as before "SEP R4", D clobbered
+;;;
+;;; CALLEE
+;;;	;; On entry: P=3, X=2, LINK=&RETADDR, CALLER's LINK is on stack (SP), D clobbered
 ;;;
 ;;; Returns
 ;;; -------
@@ -34,6 +38,7 @@
 ;;;	;; ...
 ;;;	;; PRE: SP (R2) and LINK (R6) as on entry at CALLEE
 ;;;	SEP	R5
+;;;	;; POST: continues at RETADDR with CALLER's LINK and SP restored
 
 R0	EQU	000H
 SP	EQU	002H		; STACK POINTER
@@ -71,7 +76,7 @@ LINK	EQU	006H		; LINK (RETURN ADDRESS) REGISTER
 	;; The 1804 SCAL/SRET instructions are compatible except for
 	;; representing LINK registers on the stack in BIG-endian order.
 
-EXITC	;; At this point, P=4, PC=&CALLEE, LINK=&RA1, CALLER's LINK is on stack
+EXITC	;; At this point, P=4, X=2, PC=&CALLEE, LINK=&RA1, CALLER's LINK is on stack
 	SEP	PC		; jump to CALLEE, leaving CALL=&CALRTN and LINK=&RA1
 CALRTN	;; CALLER did
 	;;	; P=3
@@ -82,25 +87,25 @@ CALRTN	;; CALLER did
 	;;
 	;; At this point, P=4, CALL=&CALRTN, PC=&RA0.
 	;; First step: push LINK on the stack
-	SEX	SP	; X points to stack
+	SEX	SP		; X points to stack
 	GHI	LINK
-	STXD		; push HIGH(LINK) on the stack
+	STXD			; push HIGH(LINK) on the stack
 	GLO	LINK
-	STXD		; low LOW(LINK) on the stack
+	STXD			; low LOW(LINK) on the stack
 	;; Second step: copy PC (&RA0) to LINK
 	GHI	PC
-	PHI	LINK	; Copy HIGH half of RA0 to LINK
+	PHI	LINK		; Copy HIGH half of RA0 to LINK
 	GLO	PC
-	PLO	LINK	; Copy LOW half of RA0 to LINK
+	PLO	LINK		; Copy LOW half of RA0 to LINK
 	;; Third step: load &CALLEE from LINK to PC and update LINK to &RA1
-	LDA	LINK	; D = M(LINK++)
-	PHI	PC	; Copy HIGH half of &CALLEE to PC
-	LDA	LINK	; D = M(LINK++)
-	PLO	PC	; Copy LOW half of &CALLEE to PC
+	LDA	LINK		; D = M(LINK++)
+	PHI	PC		; Copy HIGH half of &CALLEE to PC
+	LDA	LINK		; D = M(LINK++)
+	PLO	PC		; Copy LOW half of &CALLEE to PC
 	BR	EXITC
 
 EXITR	;; At this point, P=5, X=2, PC=&RA1, CALLER's LINK has been restored
-	SEP	PC	; jump to CALLER, leaving RETN=&RETRTN
+	SEP	PC		; jump to CALLER, leaving RETN=&RETRTN
 RETRTN	;; CALLEE did:
 	;;	; P=3, SP as on entry to CALLEE
 	;;	SEP	RETN
@@ -108,20 +113,20 @@ RETRTN	;; CALLEE did:
 	;; At this point, P=5, LINK=&RA1, CALLER's LINK is on stack
 	;; First step: copy LINK to PC
 	GHI	LINK
-	PHI	PC	; Copy HIGH half of LINK to PC
+	PHI	PC		; Copy HIGH half of LINK to PC
 	GLO	LINK
-	PLO	PC	; Copy LOW half of LINK to PC
+	PLO	PC		; Copy LOW half of LINK to PC
 	;; Second step: pop LINK off SP
-	SEX	SP	; X points to stack
-	INC	SP	; STXD decrements R(X) after storing to M(R(X))
+	SEX	SP		; X points to stack
+	INC	SP		; STXD decrements R(X) after storing to M(R(X))
 	LDXA
-	PLO	LINK	; Pop LOW half of saved LINK
+	PLO	LINK		; Pop LOW half of saved LINK
 	LDX
-	PHI	LINK	; Pop HIGH half of saved LINK
+	PHI	LINK		; Pop HIGH half of saved LINK
 	BR	EXITR
 
-	;; rest of page 0 is stack
-	PAGE			; next page
+	;; Rest of page 0 is stack
+	PAGE			; Advance to next page
 	;;
 START	;; main()
 	SEP	CALL

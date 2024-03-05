@@ -14,7 +14,7 @@ BODY	;; Loop body: putchar(*(R(X)++))
 	OUT	6     		; *(R(X)++)
 	SEX	0		; X=P
 	OUT	7		; .. so this OUT takes the next byte from the code
-	BYTE	01H		; putchar
+	BYTE	0E0H		; putchar
 CHECK	;; Make R(X) follow our string pointer
 	SEX	1
 	;; Enter body if *(R(X)) != 0

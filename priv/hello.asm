@@ -8,23 +8,23 @@
 	OUT	6
 	BYTE	48H		; 'H'
 	OUT	7
-	BYTE	01H		; putchar
+	BYTE	0E0H		; putchar
 	OUT	6
 	BYTE	45H		; 'E'
 	OUT	7
-	BYTE	01H		; putchar
+	BYTE	0E0H		; putchar
 	OUT	6
 	BYTE	4CH		; 'L'
 	OUT	7
-	BYTE	01H		; putchar
+	BYTE	0E0H		; putchar
 	OUT	6
 	BYTE	4FH		; 'O'
 	OUT	7
-	BYTE	01H		; putchar
+	BYTE	0E0H		; putchar
 	OUT	6
 	BYTE	0AH		; '\n'
 	OUT	7
-	BYTE	01H		; putchar
+	BYTE	0E0H		; putchar
 	OUT	6
 	BYTE	00H		; status=0
 	OUT	7

@@ -274,6 +274,9 @@ do_step(Core) ->
     false -> Core1
   end.
 
+fetch_and_execute(Core = #core{idle = true}) ->
+  %% FIXME: this creates a polling loop, which is highly suboptimal
+  Core;
 fetch_and_execute(Core) ->
   P = get_p(Core),
   A = get_r(Core, P),
@@ -385,7 +388,7 @@ interrupt(Core) ->
   X = get_x(Core),
   P = get_p(Core),
   T = (X bsl 4) bor P,
-  set_ie(set_x(set_p(set_t(Core, T), 1), 2), 0).
+  set_ie(set_x(set_p(set_t(Core#core{idle = false}, T), 1), 2), 0).
 
 %% Register Operations =========================================================
 

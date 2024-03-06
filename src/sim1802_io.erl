@@ -270,15 +270,14 @@ write_pending(Byte) ->
 %% Timer =====================================================================
 
 -define(IRQ_TIMER, 0).
--define(timer_pid, timer_pid).
+-define(TIMER, sim1802_timer).
 
 timer_init() ->
-  Pid = spawn_link(
-          fun() ->
-            register(sim1802_timer, self()),
-            ?MODULE:timer_disabled_loop()
-          end),
-  ets:insert(?ETS, {?timer_pid, Pid}).
+  spawn_link(
+    fun() ->
+      register(?TIMER, self()),
+      ?MODULE:timer_disabled_loop()
+    end).
 
 timer_disabled_loop() ->
   receive
@@ -314,8 +313,7 @@ timer_delay(Mode) ->
 
 timer_write_control() ->
   Byte = read_buffer(),
-  Pid = ets:lookup_element(?ETS, ?timer_pid, 2),
-  Pid ! {reset, Byte},
+  ?TIMER ! {reset, Byte},
   ok.
 
 %% Console =====================================================================

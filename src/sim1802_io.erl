@@ -38,11 +38,14 @@
 
 -export([ init/0
         , inp/1
+        , is_interrupt/0
         , out/3
+        , wait_interrupt/0
         ]).
 
 %% private: enable reloading code
--export([ timer_disabled_loop/0
+-export([ semaphore_loop/1
+        , timer_disabled_loop/0
         , timer_enabled_loop/1
         ]).
 
@@ -61,6 +64,7 @@
 init() ->
   ets:new(?ETS, [named_table, public]),
   buffer_init(),
+  semaphore_init(),
   interrupt_init(),
   timer_init(),
   ok.
@@ -79,6 +83,14 @@ out(Core, PortNr, Byte) ->
     ?SIM1802_IO_CMD -> write_command(Core, Byte);
     _ -> ok
   end.
+
+-spec is_interrupt() -> boolean().
+is_interrupt() ->
+  read_semaphore().
+
+-spec wait_interrupt() -> ok.
+wait_interrupt() ->
+  wait_semaphore().
 
 %% Internal ====================================================================
 
@@ -117,6 +129,67 @@ write_command(Core, Command) ->
       io:format(standard_error, "@ Invalid I/O command 0x~2.16.0B\n", [Command])
   end.
 
+%% Semaphore =================================================================
+
+-define(SEMAPHORE, sim1802_semaphore).
+-define(semaphore, semaphore).
+
+semaphore_init() ->
+  spawn_link(
+    fun() ->
+      register(?SEMAPHORE, self()),
+      ?MODULE:semaphore_loop(false)
+    end),
+  ets:insert(?ETS, {?semaphore, false}).
+
+read_semaphore() ->
+  ets:lookup_element(?ETS, ?semaphore, 2).
+
+write_semaphore(Flag) ->
+  ets:update_element(?ETS, ?semaphore, {2, Flag}).
+
+reset_semaphore() ->
+  write_semaphore(false).
+
+set_semaphore() ->
+  call(set).
+
+wait_semaphore() ->
+  call(wait).
+
+semaphore_loop(Waiter) ->
+  receive
+    {wait, Pid, Ref} when Waiter =:= false ->
+      case read_semaphore() of
+        true ->
+          reply_ok(Pid, Ref),
+          ?MODULE:semaphore_loop(false);
+        false ->
+          ?MODULE:semaphore_loop({Pid, Ref})
+      end;
+    {set, Pid, Ref} ->
+      write_semaphore(true),
+      release_waiter(Waiter),
+      reply_ok(Pid, Ref),
+      ?MODULE:semaphore_loop(false);
+    Msg ->
+      io:format(standard_error, "@ Invalid semaphore msg ~p (waiter ~p)\n", [Msg, Waiter]),
+      ?MODULE:semaphore_loop(Waiter)
+  after 60_000 ->
+    ?MODULE:semaphore_loop(Waiter)
+  end.
+
+release_waiter(false) -> ok;
+release_waiter({Pid, Ref}) -> reply_ok(Pid, Ref).
+
+call(Tag) ->
+  Pid = whereis(?SEMAPHORE),
+  Ref = make_ref(),
+  Pid ! {Tag, self(), Ref},
+  receive {ok, Pid, Ref} -> ok end.
+
+reply_ok(Pid, Ref) -> Pid ! {ok, self(), Ref}.
+
 %% Interrupt Controller ======================================================
 
 -define(enabled, enabled).
@@ -139,7 +212,7 @@ interrupt_acknowledge() ->
       write_enabled(Enabled band bnot (1 bsl IRQ)),
       write_pending(Pending band bnot (1 bsl IRQ)),
       write_buffer(IRQ),
-      sim1802_core:clear_interrupt(),
+      reset_semaphore(),
       check_interrupt()
   end.
 
@@ -177,7 +250,7 @@ set_interrupt(IRQ) ->
 check_interrupt() ->
   case read_enabled() band read_pending() of
     0 -> ok;
-    _ -> sim1802_core:set_interrupt()
+    _ -> set_semaphore()
   end.
 
 read_enabled() ->

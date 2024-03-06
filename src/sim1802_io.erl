@@ -124,8 +124,8 @@ write_command(Core, Command) ->
 -define(IRQ_SPURIOUS, 8).
 
 interrupt_init() ->
-  ets:insert(?ETS, {enabled, 0}),
-  ets:insert(?ETS, {pending, 0}),
+  ets:insert(?ETS, {?enabled, 0}),
+  ets:insert(?ETS, {?pending, 0}),
   ok.
 
 interrupt_acknowledge() ->

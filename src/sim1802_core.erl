@@ -955,3 +955,32 @@ uint8_subc(M, D) ->
 
 uint8_subc(M, D, DF) ->
   uint8_addc(M, (bnot D) band 16#FF, DF).
+
+%% Eunit tests =================================================================
+
+-ifdef(EUNIT).
+
+-include_lib("eunit/include/eunit.hrl").
+
+%% For addition DF=1 means carry and DF=0 means no carry.
+add_test() ->
+  ?assertEqual({16#85, 0}, uint8_addc(16#3A, 16#4B)),
+  ?assertEqual({16#2A, 1}, uint8_addc(16#3A, 16#F0)).
+
+addc_test() ->
+  ?assertEqual({16#68, 0}, uint8_addc(16#3A, 16#2D, 1)),
+  ?assertEqual({16#00, 1}, uint8_addc(16#C2, 16#3D, 1)).
+
+%% For subtraction DF=0 means borrow and DF=1 means no borrow.
+sub_test() ->
+  ?assertEqual({16#34, 1}, uint8_subc(16#42, 16#0E)),
+  ?assertEqual({16#00, 1}, uint8_subc(16#42, 16#42)),
+  ?assertEqual({16#CB, 0}, uint8_subc(16#42, 16#77)).
+
+subc_test() ->
+  ?assertEqual({16#1F, 1}, uint8_subc(16#40, 16#20, 0)),
+  ?assertEqual({16#88, 0}, uint8_subc(16#4A, 16#C1, 0)),
+  ?assertEqual({16#32, 1}, uint8_subc(16#64, 16#32, 1)),
+  ?assertEqual({16#7F, 0}, uint8_subc(16#71, 16#F2, 1)).
+
+-endif.

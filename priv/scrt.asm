@@ -91,7 +91,7 @@ CALRTN	;; CALLER did
 	GHI	LINK
 	STXD			; push HIGH(LINK) on the stack
 	GLO	LINK
-	STXD			; low LOW(LINK) on the stack
+	STXD			; push LOW(LINK) on the stack
 	;; Second step: copy PC (&RA0) to LINK
 	GHI	PC
 	PHI	LINK		; Copy HIGH half of RA0 to LINK

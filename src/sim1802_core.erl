@@ -387,16 +387,16 @@ emu_IRX(Core) ->
   set_r(Core, X, uint16_inc(get_r(Core, X))).
 
 emu_GLO(Core, N) ->
-  set_d(Core, get_low8(get_r(Core, N))).
+  set_d(Core, get_low(get_r(Core, N))).
 
 emu_PLO(Core, N) ->
-  set_r(Core, N, set_low8(get_r(Core, N), get_d(Core))).
+  set_r(Core, N, set_low(get_r(Core, N), get_d(Core))).
 
 emu_GHI(Core, N) ->
-  set_d(Core, get_high8(get_r(Core, N))).
+  set_d(Core, get_high(get_r(Core, N))).
 
 emu_PHI(Core, N) ->
-  set_r(Core, N, set_high8(get_r(Core, N), get_d(Core))).
+  set_r(Core, N, set_high(get_r(Core, N), get_d(Core))).
 
 %% Memory Reference ============================================================
 
@@ -579,7 +579,7 @@ emu_SMBI(Core) ->
 emu_BR(Core) ->
   P = get_p(Core),
   A = get_r(Core, P),
-  set_r(Core, P, set_low8(A, get_byte(Core, A))).
+  set_r(Core, P, set_low(A, get_byte(Core, A))).
 
 emu_NBR(Core) ->
   P = get_p(Core),
@@ -633,7 +633,7 @@ short_branch(Core, Pred) ->
   A = get_r(Core, P),
   NewA =
     case Pred(Core) of
-      true -> set_low8(A, get_byte(Core, A));
+      true -> set_low(A, get_byte(Core, A));
       false -> uint16_inc(A)
     end,
   set_r(Core, P, NewA).
@@ -917,16 +917,16 @@ io_out(Core, N, Byte) ->
 
 %% Accessing bytes in words ====================================================
 
-get_low8(Word) ->
+get_low(Word) ->
   Word band 16#00FF.
 
-set_low8(Word, Byte) ->
+set_low(Word, Byte) ->
   (Word band 16#FF00) bor Byte.
 
-get_high8(Word) ->
+get_high(Word) ->
   Word bsr 8.
 
-set_high8(Word, Byte) ->
+set_high(Word, Byte) ->
   (Word band 16#00FF) bor (Byte bsl 8).
 
 make_word(High8, Low8) ->

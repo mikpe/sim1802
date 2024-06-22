@@ -1,6 +1,6 @@
 %%% -*- erlang-indent-level: 2 -*-
 %%%
-%%% CDP1802 CPU core simulation
+%%% CDP1802 CPU core simulation with partial CDP1804AC support
 
 -module(sim1802_core).
 
@@ -364,9 +364,26 @@ execute(Core, Opcode) ->
   end.
 
 emu_68(Core) ->
-  %% TODO: handle CDP1804AC extended opcodes
-  %% Reportedly the 1802 treats opcode 68 as INP 0.
-  emu_INP(Core, 0).
+  P = get_p(Core),
+  A = get_r(Core, P),
+  execute_68(set_r(Core, P, uint16_inc(A)), get_byte(Core, A)).
+
+execute_68(Core, Opcode) ->
+  N = Opcode band 16#0F,
+  case Opcode bsr 4 of
+    ?OP_DBNZ bsr 4 -> emu_DBNZ(Core, N); % 682N
+    ?OP_RLXA bsr 4 -> emu_RLXA(Core, N); % 686N
+    ?OP_SCAL bsr 4 -> emu_SCAL(Core, N); % 688N
+    ?OP_SRET bsr 4 -> emu_SRET(Core, N); % 689N
+    ?OP_RSXD bsr 4 -> emu_RSXD(Core, N); % 68AN
+    ?OP_RNX  bsr 4 -> emu_RNX (Core, N); % 68BN
+    ?OP_RLDI bsr 4 -> emu_RLDI(Core, N); % 68CN
+    %% TODO: handle more CDP1804AC extended opcodes
+    _ ->
+      io:format(standard_error, "@ Invalid opcode 0x~2.16.0B at 0x~4.16.0B\n",
+                [Opcode, uint16_dec2(get_r(Core, get_p(Core)))]),
+      halt(Core, 1)
+  end.
 
 interrupt(Core) ->
   X = get_x(Core),
@@ -678,11 +695,6 @@ long_branch(Core, Pred) ->
     end,
   set_r(Core, P, NewA).
 
-get_word(Core, A) ->
-  High = get_byte(Core, A),
-  Low = get_byte(Core, uint16_inc(A)),
-  make_word(High, Low).
-
 %% Skip Instructions ===========================================================
 
 emu_LSZ(Core) ->
@@ -783,6 +795,71 @@ emu_INP(Core, N) ->
   X = get_x(Core),
   A = get_r(Core, X),
   set_d(set_byte(Core, A, Byte), Byte).
+
+%% 1804AC full-width register instructions =====================================
+
+emu_RLXA(Core, N) ->
+  X = get_x(Core),
+  %% Although we could emulate it, the case when X equals N has confusing
+  %% semantics and would almost certainly be a programming error.
+  true = X =/= N,
+  A = get_r(Core, X),
+  Word = get_word(Core, A),
+  Core1 = set_r(Core, N, Word),
+  set_r(Core1, X, uint16_inc2(A)).
+
+emu_RLDI(Core, N) -> % Note: exactly like RLXA with X=P
+  P = get_p(Core),
+  %% Although we could emulate it, the case when P equals N has confusing
+  %% semantics and would almost certainly be a programming error.
+  true = P =/= N,
+  A = get_r(Core, P),
+  Word = get_word(Core, A),
+  Core1 = set_r(Core, N, Word),
+  set_r(Core1, P, uint16_inc2(A)).
+
+emu_RSXD(Core, N) ->
+  X = get_x(Core),
+  A = get_r(Core, X),
+  Word = get_r(Core, N),
+  Core1 = set_word(Core, uint16_dec(A), Word),
+  set_r(Core1, X, uint16_dec2(A)).
+
+emu_RNX(Core, N) ->
+  set_r(Core, get_x(Core), get_r(Core, N)).
+
+emu_DBNZ(Core, N) ->
+  RN = uint16_dec(get_r(Core, N)),
+  Core1 = set_r(Core, N, RN),
+  case RN =/= 0 of
+    true -> emu_LBR(Core1);
+    false -> emu_NLBR(Core1)
+  end.
+
+%% 1804AC standard call and return instructions ================================
+
+emu_SCAL(Core, N) ->
+  RN = get_r(Core, N),
+  X = get_x(Core),
+  RX = get_r(Core, X),
+  %% Push LINK.
+  Core1 = set_word(Core, uint16_dec(RX), RN),
+  Core2 = set_r(Core1, X, uint16_dec2(RX)),
+  %% Load new PC.
+  P = get_p(Core2),
+  OldPC = get_r(Core2, P),
+  NewPC = get_word(Core2, OldPC),
+  Core3 = set_r(Core2, P, NewPC),
+  %% Update LINK to old PC + 2.
+  set_r(Core3, N, uint16_inc2(OldPC)).
+
+emu_SRET(Core, N) ->
+  Core1 = set_r(Core, get_p(Core), get_r(Core, N)),
+  X = get_x(Core1),
+  A = get_r(Core1, X),
+  Word = get_word(Core1, uint16_inc(A)),
+  Core2 = set_r(Core1, N, Word),
+  set_r(Core2, X, uint16_inc2(A)).
 
 %% Predicates for branch and skip instructions =================================
 
@@ -903,9 +980,18 @@ set_signal(Signal) ->
 get_byte(_Core, Address) ->
   sim1802_memory:get_byte(Address).
 
+get_word(Core, Address) ->
+  High = get_byte(Core, Address),
+  Low = get_byte(Core, uint16_inc(Address)),
+  make_word(High, Low).
+
 set_byte(Core, Address, Byte) ->
   sim1802_memory:set_byte(Address, Byte),
   Core.
+
+set_word(Core, Address, Word) ->
+  Core1 = set_byte(Core, Address, get_high(Word)),
+  set_byte(Core1, uint16_inc(Address), get_low(Word)).
 
 %% I/O accesses ================================================================
 
@@ -942,6 +1028,9 @@ uint16_inc2(V) ->
 
 uint16_dec(V) ->
   (V - 1) band ?UINT16_MAX.
+
+uint16_dec2(V) ->
+  (V - 2) band ?UINT16_MAX.
 
 uint8_addc(M, D) ->
   uint8_addc(M, D, _DF = 0).

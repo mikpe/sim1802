@@ -12,7 +12,7 @@
 -spec main([string()]) -> no_return().
 main([ImageFile]) ->
   ok = sim1802_memory:init(),
-  ok = sim1802_loader:load(ImageFile),
+  ok = sim1802_hex_loader:load(ImageFile),
   ok = sim1802_io:init(),
   Core = sim1802_core:init(),
   run(Core).

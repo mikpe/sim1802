@@ -2,7 +2,7 @@
 %%%
 %%% Intel HEX file loader for CDP1802 simulator
 
--module(sim1802_loader).
+-module(sim1802_hex_loader).
 
 -export([ load/1
         ]).

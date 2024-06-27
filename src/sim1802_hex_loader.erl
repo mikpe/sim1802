@@ -5,11 +5,12 @@
 -module(sim1802_hex_loader).
 
 -export([ load/1
+        , format_error/1
         ]).
 
 %% API =========================================================================
 
--spec load(string()) -> ok | {error, any()}.
+-spec load(string()) -> ok | {error, {module(), term()}}.
 load(File) ->
   case file:open(File, [read, raw, read_ahead]) of
     {ok, Fd} ->
@@ -18,9 +19,7 @@ load(File) ->
       after
         file:close(Fd)
       end;
-    {error, Reason} = Error ->
-      io:format(standard_error, "~ts: Error: ~ts\n", [File, file:format_error(Reason)]),
-      Error
+    {error, Reason} -> {error, {file, Reason}}
   end.
 
 %% Internal ====================================================================
@@ -46,19 +45,18 @@ process(Fd, File, LineNr) ->
           case load_entry(Entry) of
             ok -> process(Fd, File, LineNr);
             eof -> ok;
-            {error, Reason} -> process_error(File, LineNr, Reason)
+            {error, Reason} -> process_error(LineNr, Reason)
           end;
-        {error, Reason} -> process_error(File, LineNr, Reason)
+        {error, Reason} -> process_error(LineNr, Reason)
       end;
     {ok, $\n} -> process(Fd, File, LineNr + 1);
     {ok, _Ch} -> process(Fd, File, LineNr);
     eof -> ok;
-    {error, Reason} -> process_error(File, LineNr, Reason)
+    {error, Reason} -> process_error(LineNr, Reason)
   end.
 
-process_error(File, LineNr, Reason) ->
-  io:format(standard_error, "~ts, line ~p: Error: ~ts\n", [File, LineNr, format_error(Reason)]),
-  {error, Reason}.
+process_error(LineNr, Reason) ->
+  {error, {?MODULE, {process_error, LineNr, Reason}}}.
 
 %% seen ":", now read <count:1><address:2><type:1><data:count><checksum:1>
 read_entry(Fd) ->
@@ -88,7 +86,7 @@ check_entry(Count, AddrHigh, AddrLow, Type, Data, Checksum) ->
   Actual = ((bnot Sum) + 1) band 255,
   case Actual =:= Checksum of
     true -> {ok, {Count, (AddrHigh bsl 8) bor AddrLow, Type, Data}};
-    false -> {error, {invalid_checksum, Actual, Checksum}}
+    false -> {error, {?MODULE, {invalid_checksum, Actual, Checksum}}}
   end.
 
 read_data(_Fd, 0, Acc) -> {ok, lists:reverse(Acc)};
@@ -123,9 +121,9 @@ read_hex_digit(Fd) ->
     {ok, Ch} ->
       if Ch >= $A, Ch =< $F -> {ok, Ch - ($A - 10)};
          Ch >= $0, Ch =< $9 -> {ok, Ch - $0};
-         true -> {error, {invalid_hex_digit, Ch}}
+         true -> {error, {?MODULE, {invalid_hex_digit, Ch}}}
       end;
-    eof -> {error, premature_eof};
+    eof -> {error, {?MODULE, premature_eof}};
     {error, _Reason} = Error -> Error
   end.
 
@@ -148,7 +146,7 @@ load_entry({Count, Address, Type, Data}) ->
     16#01 -> % End Of File
       eof;
     _ ->
-      {error, {invalid_entry_type, Type}}
+      {error, {?MODULE, {invalid_entry_type, Type}}}
   end.
 
 load_byte(Byte, Address) ->
@@ -157,10 +155,11 @@ load_byte(Byte, Address) ->
 
 %% Error formatting ============================================================
 
+-spec format_error(term()) -> io_lib:chars().
 format_error(Reason) ->
   case Reason of
-    {file, FileReason} ->
-      file:format_error(FileReason);
+    {process_error, LineNr, Reason2} ->
+      io_lib:format("line ~p: ~ts", [LineNr, sim1802:format_error(Reason2)]);
     {invalid_entry_type, Type} ->
       io_lib:format("invalid entry type 0x~2.16.0B", [Type]);
     {invalid_checksum, Actual, Expected} ->

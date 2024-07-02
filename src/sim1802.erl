@@ -11,9 +11,9 @@
 %% Command-line interface ======================================================
 
 -spec main([string()]) -> no_return().
-main([ImageFile]) ->
+main([ImageFile | Args]) ->
   ok = sim1802_memory:init(),
-  ok = load(ImageFile),
+  ok = load(ImageFile, Args),
   ok = sim1802_io:init(),
   Core = sim1802_core:init(),
   run(Core).
@@ -26,10 +26,10 @@ run(Core) ->
     {error, {_NewCore, {halt, Status}}} -> halt(Status)
   end.
 
-%% Load image file =============================================================
+%% Load image file and write boot args =========================================
 
-load(ImageFile) ->
-  case sim1802_hex_loader:load(ImageFile) of
+load(ImageFile, Args) ->
+  case sim1802_loader:load(ImageFile, Args) of
     ok -> ok;
     {error, Reason} ->
       io:format("Error loading ~ts: ~ts\n", [ImageFile, format_error(Reason)]),

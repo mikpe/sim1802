@@ -3,17 +3,20 @@
 SHELL=/bin/bash
 REBAR3=$(shell type -p rebar3 || echo ./rebar3)
 REBAR3_GIT=https://github.com/erlang/rebar3.git
-REBAR3_VSN=3.22.1
+REBAR3_VSN=3.23.0
+TRIPLET=cdp1802-unknown-elf
 
 build:	$(REBAR3)
 	$(REBAR3) do compile, xref, dialyzer, escriptize
+	mkdir -p bin
+	ln -sf ../_build/default/bin/sim1802 bin/
 
 test:	$(REBAR3)
 	$(REBAR3) eunit
 
-install:
-	mkdir -p bin
-	cp _build/default/bin/sim1802 bin/sim1802
+install:	$(BUILD)
+	mkdir -p $(BINDIR)
+	cp _build/default/bin/sim1802 $(BINDIR)/$(TRIPLET)-sim
 
 distclean realclean:	clean
 	rm -f ./rebar3

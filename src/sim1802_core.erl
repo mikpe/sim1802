@@ -170,6 +170,11 @@
 -define(OP_DADI, 16#FC). % 68FC: DECIMAL ADD IMMEDIATE
 -define(OP_DSMI, 16#FF). % 68FF: DECIMAL SUBTRACT MEMORY, IMMEDIATE
 
+%% Simulator debugging opcodes, all prefixed by 16#68.
+-define(OP_DBG0, 16#10). % 6810: print PC and SP
+-define(OP_DBG1, 16#11). % 6811: print PC, SP, r7, r10, r15
+-define(OP_DBG2, 16#12). % 6812: print PC, SP, argv[1] (*(void*)(r8+2))
+
 %% ETS for recording state of input signals.
 -define(SIGNALS_ETS, ?MODULE).
 -define(SIGNAL_EF1, ef1).
@@ -380,10 +385,33 @@ execute_68(Core, Opcode) ->
     ?OP_RLDI bsr 4 -> emu_RLDI(Core, N); % 68CN
     %% TODO: handle more CDP1804AC extended opcodes
     _ ->
-      io:format(standard_error, "@ Invalid opcode 0x~2.16.0B at 0x~4.16.0B\n",
-                [Opcode, uint16_dec2(get_r(Core, get_p(Core)))]),
-      halt(Core, 1)
+      case Opcode of
+        ?OP_DBG0 -> emu_DBG0(Core); % 6810
+        ?OP_DBG1 -> emu_DBG1(Core); % 6811
+        ?OP_DBG2 -> emu_DBG2(Core); % 6812
+        _ ->
+          io:format(standard_error, "@ Invalid opcode 0x~2.16.0B at 0x~4.16.0B\n",
+                    [Opcode, uint16_dec2(get_r(Core, get_p(Core)))]),
+          halt(Core, 1)
+      end
   end.
+
+emu_DBG0(Core) -> % print PC and SP
+  io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B\n",
+            [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2)]),
+  Core.
+
+emu_DBG1(Core) -> % print PC, SP, r7, r10, r15
+  io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B R7 0x~4.16.0B R10 0x~4.16.0B R15 0x~4.16.0B\n",
+            [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2), get_r(Core, 7), get_r(Core, 10), get_r(Core, 15)]),
+  Core.
+
+emu_DBG2(Core) -> % print PC, SP, argv[1] (*(void*)(r8+2))
+  Address = uint16_inc2(get_r(Core, 8)),
+  Argv1 = get_word(Core, Address),
+  io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B &argv[1] 0x~4.16.0B argv[1] 0x~4.16.0B\n",
+            [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2), Address, Argv1]),
+  Core.
 
 interrupt(Core) ->
   X = get_x(Core),

@@ -15,8 +15,18 @@ test:	$(REBAR3)
 	$(REBAR3) eunit
 
 install:	$(BUILD)
-	mkdir -p $(BINDIR)
-	cp _build/default/bin/sim1802 $(BINDIR)/$(TRIPLET)-sim
+	mkdir -p $(PREFIX)/bin
+	cp _build/default/bin/sim1802 $(PREFIX)/bin/$(TRIPLET)-sim
+	mkdir -p $(PREFIX)/dejagnu
+	cp dejagnu/cdp1802-sim.exp $(PREFIX)/dejagnu/
+	@if [ ! -f "${HOME}/.dejagnurc" ]; then \
+	    echo creating "${HOME}/.dejagnurc" ; \
+	    touch "${HOME}/.dejagnurc" ; \
+	fi
+	@if ! grep -q "lappend boards_dir \"${PREFIX}/dejagnu\"" "${HOME}/.dejagnurc" ; then \
+	    echo updating "${HOME}/.dejagnurc" ; \
+	    echo "lappend boards_dir \"${PREFIX}/dejagnu\"" >> "${HOME}/.dejagnurc" ; \
+	fi
 
 distclean realclean:	clean
 	rm -f ./rebar3

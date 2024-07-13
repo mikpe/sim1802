@@ -174,6 +174,7 @@
 -define(OP_DBG0, 16#10). % 6810: print PC and SP
 -define(OP_DBG1, 16#11). % 6811: print PC, SP, r7, r10, r15
 -define(OP_DBG2, 16#12). % 6812: print PC, SP, argv[1] (*(void*)(r8+2))
+-define(OP_NYI,  16#1F). % 681F: print D and exit 98
 
 %% ETS for recording state of input signals.
 -define(SIGNALS_ETS, ?MODULE).
@@ -389,8 +390,9 @@ execute_68(Core, Opcode) ->
         ?OP_DBG0 -> emu_DBG0(Core); % 6810
         ?OP_DBG1 -> emu_DBG1(Core); % 6811
         ?OP_DBG2 -> emu_DBG2(Core); % 6812
+        ?OP_NYI  -> emu_NYI(Core);  % 681F
         _ ->
-          io:format(standard_error, "@ Invalid opcode 0x~2.16.0B at 0x~4.16.0B\n",
+          io:format(standard_error, "@ Invalid opcode 0x68~2.16.0B at 0x~4.16.0B\n",
                     [Opcode, uint16_dec2(get_r(Core, get_p(Core)))]),
           halt(Core, 1)
       end
@@ -412,6 +414,15 @@ emu_DBG2(Core) -> % print PC, SP, argv[1] (*(void*)(r8+2))
   io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B &argv[1] 0x~4.16.0B argv[1] 0x~4.16.0B\n",
             [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2), Address, Argv1]),
   Core.
+
+%% silence "Function emu_NYI/1 has no local return"
+-dialyzer({nowarn_function, emu_NYI/1}).
+emu_NYI(Core) ->
+  D = get_d(Core),
+  P = get_p(Core),
+  PC = get_r(Core, P),
+  io:format(standard_error, "@ PC 0x~4.16.0B NYI 0x~2.16.0B\n", [uint16_dec2(PC), D]),
+  halt(Core, 98).
 
 interrupt(Core) ->
   X = get_x(Core),

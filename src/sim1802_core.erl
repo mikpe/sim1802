@@ -9,7 +9,7 @@
         , clear_ef3/0
         , clear_ef4/0
         , halt/2
-        , init/0
+        , init/1
         , reset/1
         , set_ef1/0
         , set_ef2/0
@@ -48,6 +48,7 @@
         , ie  :: uint1_t() % interrupt enable flip-flop
         , t   :: uint8_t() % temporary holding <X,P> after interrupt
         , q   :: uint1_t() % Programmable flip-flop
+        , trc :: boolean() % Trace each instruction being executed
         }).
 
 -type core() :: #core{}.
@@ -185,8 +186,8 @@
 
 %% Simulator Control ===========================================================
 
--spec init() -> core().
-init() ->
+-spec init(Trace :: boolean()) -> core().
+init(Trace) ->
   init_signals(),
   #core{ r   = erlang:make_tuple(16, 0)
        , p   = 0
@@ -196,6 +197,7 @@ init() ->
        , ie  = 1
        , t   = 0
        , q   = 0
+       , trc = Trace
        }.
 
 -spec reset(core()) -> core().
@@ -270,7 +272,13 @@ do_step(Core) ->
 fetch_and_execute(Core) ->
   P = get_p(Core),
   A = get_r(Core, P),
-  execute(set_r(Core, P, uint16_inc(A)), get_byte(Core, A)).
+  Opcode = get_byte(Core, A),
+  trace(Core, A, Opcode),
+  execute(set_r(Core, P, uint16_inc(A)), Opcode).
+
+trace(#core{trc = false}, _A, _Opcode) -> ok;
+trace(_Core, A, Opcode) ->
+  io:format(standard_error, "@ ~4.16.0b op ~2.16.0b\n", [A, Opcode]).
 
 execute(Core, Opcode) ->
   case Opcode of

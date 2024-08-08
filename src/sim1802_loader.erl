@@ -9,13 +9,19 @@
 
 %% API =========================================================================
 
--spec load(string(), [string()]) -> ok | false | {error, {module(), term()}}.
+-spec load(string(), [string()]) -> {ok, sim1802_symtab:symtab()} | false | {error, {module(), term()}}.
 load(File, Args) ->
   case (case sim1802_elf_loader:load(File) of
-          false -> sim1802_hex_loader:load(File);
+          false ->
+            case sim1802_hex_loader:load(File) of
+              ok -> {ok, sim1802_symtab:init([])};
+              {error, _Reason2} = Error2 -> Error2
+            end;
           OkOrError -> OkOrError
         end) of
-    ok -> write_boot_args([File | Args]);
+    {ok, _SymTab} = Result ->
+      write_boot_args([File | Args]),
+      Result;
     {error, _Reason} = Error -> Error
   end.
 

@@ -11,11 +11,17 @@
 %% Command-line interface ======================================================
 
 -spec main([string()]) -> no_return().
-main([ImageFile | Args]) ->
+main(Args) ->
+  main(Args, _Trace = false).
+
+%% TODO: use my getopt library here
+main(["--trace" | Args], _Trace) -> main(Args, _Trace2 = true);
+main(["-t" | Args], _Trace) -> main(Args, _Trace2 = true);
+main([ImageFile | Args], Trace) ->
   ok = sim1802_memory:init(),
   ok = load(ImageFile, Args),
   ok = sim1802_io:init(),
-  Core = sim1802_core:init(),
+  Core = sim1802_core:init(Trace),
   run(Core).
 
 %% Run simulator ===============================================================

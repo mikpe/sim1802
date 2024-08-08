@@ -9,7 +9,7 @@
         , clear_ef3/0
         , clear_ef4/0
         , halt/2
-        , init/1
+        , init/2
         , reset/1
         , set_ef1/0
         , set_ef2/0
@@ -49,6 +49,7 @@
         , t   :: uint8_t() % temporary holding <X,P> after interrupt
         , q   :: uint1_t() % Programmable flip-flop
         , trc :: boolean() % Trace each instruction being executed
+        , symtab :: sim1802_symtab:symtab() % Symbol table from image file
         }).
 
 -type core() :: #core{}.
@@ -186,8 +187,8 @@
 
 %% Simulator Control ===========================================================
 
--spec init(Trace :: boolean()) -> core().
-init(Trace) ->
+-spec init(Trace :: boolean(), SymTab :: sim1802_symtab:symtab()) -> core().
+init(Trace, SymTab) ->
   init_signals(),
   #core{ r   = erlang:make_tuple(16, 0)
        , p   = 0
@@ -198,6 +199,7 @@ init(Trace) ->
        , t   = 0
        , q   = 0
        , trc = Trace
+       , symtab = SymTab
        }.
 
 -spec reset(core()) -> core().
@@ -277,8 +279,15 @@ fetch_and_execute(Core) ->
   execute(set_r(Core, P, uint16_inc(A)), Opcode).
 
 trace(#core{trc = false}, _A, _Opcode) -> ok;
-trace(_Core, A, Opcode) ->
-  io:format(standard_error, "@ ~4.16.0b op ~2.16.0b\n", [A, Opcode]).
+trace(#core{symtab = SymTab}, A, Opcode) ->
+  Address =
+    case sim1802_symtab:resolve(SymTab, A) of
+      {Name, Offset} ->
+        io_lib:format("~s+~.16.0b (~4.16.0b)", [Name, Offset, A]);
+      false ->
+        io_lib:format("~4.16.0b", [A])
+    end,
+  io:format(standard_error, "@ ~s op ~2.16.0b\n", [Address, Opcode]).
 
 execute(Core, Opcode) ->
   case Opcode of

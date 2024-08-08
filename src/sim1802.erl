@@ -19,9 +19,9 @@ main(["--trace" | Args], _Trace) -> main(Args, _Trace2 = true);
 main(["-t" | Args], _Trace) -> main(Args, _Trace2 = true);
 main([ImageFile | Args], Trace) ->
   ok = sim1802_memory:init(),
-  ok = load(ImageFile, Args),
+  SymTab = load(ImageFile, Args),
   ok = sim1802_io:init(),
-  Core = sim1802_core:init(Trace),
+  Core = sim1802_core:init(Trace, SymTab),
   run(Core).
 
 %% Run simulator ===============================================================
@@ -36,7 +36,7 @@ run(Core) ->
 
 load(ImageFile, Args) ->
   case sim1802_loader:load(ImageFile, Args) of
-    ok -> ok;
+    {ok, SymTab} -> SymTab;
     {error, Reason} ->
       io:format("Error loading ~ts: ~ts\n", [ImageFile, format_error(Reason)]),
       halt(1)

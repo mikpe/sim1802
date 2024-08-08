@@ -10,13 +10,15 @@
 
 %% API =========================================================================
 
--spec load(string()) -> ok | false | {error, {module(), term()}}.
+-spec load(string()) -> {ok, sim1802_symtab:symtab()} | false | {error, {module(), term()}}.
 load(File) ->
   case file:open(File, [read, raw, read_ahead]) of
     {ok, Fd} ->
       try
         case load_fd(Fd) of
-          {ok, PC} -> install_bootstrap(PC);
+          {ok, {PC, SymTab}} ->
+            install_bootstrap(PC),
+            {ok, SymTab};
           FalseOrError -> FalseOrError
         end
       after
@@ -127,7 +129,33 @@ install_bootstrap(PC) ->
 %% Value for e_phnum.
 -define(PN_XNUM,    16#ffff). % Extended numbering
 
+%% Section header
+
+-record(elf32_Shdr,
+        { sh_name       :: elf32_Word()         % Section name, index in string tbl
+                         | string()             % Name (in-core only)
+        , sh_type       :: elf32_Word()         % Type of section
+        , sh_flags      :: elf32_Word()         % Miscellaneous section attributes
+        , sh_addr       :: elf32_Addr()         % Section virtual addr at execution
+        , sh_offset     :: elf32_Off()          % Section file offset
+        , sh_size       :: elf32_Word()         % Size of section in bytes
+        , sh_link       :: elf32_Word()         % Index of another section
+        , sh_info       :: elf32_Word()         % Additional section information
+        , sh_addralign  :: elf32_Word()         % Section alignment
+        , sh_entsize    :: elf32_Word()         % Entry size if section holds table
+        }).
+
 -define(ELF32_SHDR_SIZEOF, (10 * 4)).
+
+%% Special section indices, which may show up in st_shndx fields, among
+%% other places.
+
+-define(SHN_UNDEF,      16#0000).       % Undefined, missing, irrelevant, or meaningless
+
+%% Values for section header, sh_type field.
+
+-define(SHT_SYMTAB,     2).             % Link editing symbol table
+-define(SHT_STRTAB,     3).             % A string table
 
 %% Program header
 
@@ -149,6 +177,20 @@ install_bootstrap(PC) ->
 -define(PT_NULL,          0). % Program header table entry unused
 -define(PT_LOAD,          1). % Loadable program segment
 
+%% Symbol table entry
+
+-record(elf32_Sym,
+        { st_name       :: elf32_Word()         % Symbol name, index in string tbl
+                         | string()             % Name (in-core only)
+        , st_value      :: elf32_Addr()         % Value of the symbol
+        , st_size       :: elf32_Word()         % Associated symbol size
+        , st_info       :: elf32_Uchar()        % Type and binding attributes
+        , st_other      :: elf32_Uchar()        % No defined meaning, 0
+        , st_shndx      :: elf32_Half()         % Associated section index
+        }).
+
+-define(ELF32_SYM_SIZEOF,       (3 * 4 + 2 + 1 + 1)).
+
 %% RCA CDP1802 specifics
 
 -define(EM_CDP1802, 16#1802).
@@ -156,10 +198,22 @@ install_bootstrap(PC) ->
 
 %% Load ELF executable =========================================================
 
--spec load_fd(file:fd()) -> {ok, PC :: non_neg_integer()} | false | {error, {module(), term()}}.
+-spec load_fd(file:fd()) -> {ok, {PC :: non_neg_integer(), sim1802_symtab:symtab()}} | false | {error, {module(), term()}}.
 load_fd(Fd) ->
   case read_Ehdr(Fd) of
-    {ok, Ehdr} -> load_ehdr(Fd, Ehdr);
+    {ok, Ehdr} ->
+      case load_ehdr(Fd, Ehdr) of
+       {ok, PC} ->
+         SymTab =
+           case load_SymTab(Fd, Ehdr) of
+             {ok, SymTab0} -> SymTab0;
+             {error, Reason} ->
+               io:format(standard_error, "No symbol table loaded: ~ts\n", [sim1802:format_error(Reason)]),
+               sim1802_symtab:init([])
+           end,
+         {ok, {PC, SymTab}};
+       {error, _Reason} = Error -> Error
+      end;
     {error, {?MODULE, {wrong_ei_mag, _}}} -> false;
     {error, {?MODULE, eof}} -> false;
     {error, _Reason} = Error -> Error
@@ -226,6 +280,26 @@ is_valid_phdr(Phdr) ->
 is_page_aligned(Offset) -> (Offset band (?PAGE_SIZE - 1)) =:= 0.
 
 no_excess_flags(Flags) -> (Flags band 8#7) =:= Flags.
+
+%% Load ELF Symbol Table =======================================================
+
+load_SymTab(Fd, Ehdr) ->
+  case read_ShTab(Fd, Ehdr) of
+    {ok, ShTab} ->
+      case read_SymTab(Fd, ShTab) of
+        {ok, {SymTab, _ShNdx}} -> load_SymTab(SymTab);
+        {error, _Reason} = Error -> Error
+      end;
+    {error, _Reason} = Error -> Error
+  end.
+
+load_SymTab(SymTab) ->
+  Bindings =
+    lists:map(
+      fun(#elf32_Sym{st_name = StName, st_value = StValue}) ->
+        {StName, StValue}
+      end, SymTab),
+  {ok, sim1802_symtab:init(Bindings)}.
 
 %% Writing to memory ===========================================================
 
@@ -396,7 +470,7 @@ check_Ehdr_e_shentsize(Ehdr) ->
     _ -> {error, {?MODULE, {wrong_e_shentsize, ShEntSize}}}
   end.
 
-%% Read ELF Program Header table ================================================
+%% Read ELF Program Header Table ===============================================
 
 read_PhTab(Fd, Ehdr) ->
   PhNum = get_phnum(Ehdr),
@@ -411,7 +485,7 @@ read_PhTab(Fd, Ehdr) ->
   end.
 
 read_PhTab(_Fd, 0, Acc) -> {ok, lists:reverse(Acc)};
-read_PhTab(Fd, PhNum, Acc) ->
+read_PhTab(Fd, PhNum, Acc) when PhNum > 0 ->
   case read_Phdr(Fd) of
     {ok, Phdr} -> read_PhTab(Fd, PhNum - 1, [Phdr | Acc]);
     {error, _Reason} = Error -> Error
@@ -437,10 +511,166 @@ read_Phdr(Fd) ->
     ],
   read_record(Fd, Tag, Fields).
 
-read_Addr(Fd)  -> read_uint32(Fd).
-read_Half(Fd)  -> read_uint16(Fd).
-read_Off(Fd)   -> read_uint32(Fd).
-read_Word(Fd)  -> read_uint32(Fd).
+%% Read ELF Section Header Table ===============================================
+
+read_ShTab(Fd, Ehdr) ->
+  #elf32_Ehdr{ e_shoff = ShOff
+             , e_shnum = ShNum0
+             } = Ehdr,
+  case ShOff of
+    0 -> {ok, []};
+    _ ->
+      case seek(Fd, ShOff) of
+        ok ->
+          case read_Shdr(Fd) of
+            {ok, Shdr0} ->
+              ShNum = actual_shnum(ShNum0, Shdr0),
+              read_ShTab(Fd, ShNum - 1, [Shdr0]);
+            {error, _Reason} = Error -> Error
+          end;
+        {error, _Reason} = Error -> Error
+      end
+  end.
+
+actual_shnum(0, #elf32_Shdr{sh_size = ShNum} = _Shdr0) -> ShNum;
+actual_shnum(ShNum, _Shdr0) -> ShNum.
+
+read_ShTab(_Fd, 0, Shdrs) -> {ok, lists:reverse(Shdrs)};
+read_ShTab(Fd, ShNum, Shdrs) when ShNum > 0 ->
+  case read_Shdr(Fd) of
+    {ok, Shdr} -> read_ShTab(Fd, ShNum - 1, [Shdr | Shdrs]);
+    {error, _Reason} = Error -> Error
+  end.
+
+read_Shdr(Fd) ->
+  Tag = elf32_Shdr,
+  Fields =
+    [ fun read_Word/1           % sh_name
+    , fun read_Word/1           % sh_type
+    , fun read_Word/1           % sh_flags
+    , fun read_Addr/1           % sh_addr
+    , fun read_Off/1            % sh_offset
+    , fun read_Word/1           % sh_size
+    , fun read_Word/1           % sh_link
+    , fun read_Word/1           % sh_info
+    , fun read_Word/1           % sh_addralign
+    , fun read_Word/1           % sh_entsize
+    ],
+  read_record(Fd, Tag, Fields).
+
+%% Read ELF String Table =======================================================
+
+read_StrTab(Fd, ShTab, Index) ->
+  ShNum = length(ShTab),
+  case Index > 0 andalso Index < ShNum of
+    true ->
+      #elf32_Shdr{ sh_type = ShType
+                 , sh_size = ShSize
+                 , sh_offset = ShOffset
+                 } = lists:nth(Index + 1, ShTab),
+      case ShType of
+        ?SHT_STRTAB ->
+          case seek(Fd, ShOffset) of
+            ok -> read(Fd, ShSize);
+            {error, _Reason} = Error -> Error
+          end;
+        _ -> {error, {?MODULE, {wrong_strtab_sh_type, ShType, Index}}}
+      end;
+    false -> {error, {?MODULE, {wrong_strtab_index, Index}}}
+  end.
+
+get_name(_StrTab, 0) -> {ok, ""}; % TODO: or some marker for "absent"
+get_name(StrTab, Index) ->
+  try lists:nthtail(Index, StrTab) of
+    [C | Tail] -> get_name(C, Tail, [])
+  catch _C:_R ->
+    {error, {?MODULE, {wrong_index_in_strtab, Index}}}
+  end.
+
+get_name(0, _Tail, Acc) -> {ok, lists:reverse(Acc)};
+get_name(C1, [C2 | Tail], Acc) -> get_name(C2, Tail, [C1 | Acc]);
+get_name(_C, [], _Acc) -> {error, {?MODULE, strtab_not_nul_terminated}}.
+
+%% Read ELF Symbol Table =======================================================
+
+read_SymTab(Fd, ShTab) ->
+  case find_SymTab(ShTab) of
+    false -> {ok, {[], ?SHN_UNDEF}};
+    {ok, {Shdr, ShNdx}} ->
+      #elf32_Shdr{ sh_link = ShLink
+                 , sh_entsize = ShEntSize
+                 , sh_size = ShSize
+                 , sh_offset = ShOffset
+                 } = Shdr,
+      if ShEntSize =/= ?ELF32_SYM_SIZEOF ->
+           {error, {?MODULE, {wrong_symtab_sh_entsize, ShEntSize}}};
+         (ShSize rem ?ELF32_SYM_SIZEOF) =/= 0 ->
+           {error, {?MODULE, {wrong_symtab_sh_size, ShSize}}};
+         true ->
+           case read_StrTab(Fd, ShTab, ShLink) of
+             {ok, StrTab} ->
+               SymNum = ShSize div ?ELF32_SYM_SIZEOF,
+               case SymNum of
+                 0 -> {ok, {[], ShNdx}};
+                 _ ->
+                   case seek(Fd, ShOffset) of
+                     ok ->
+                       case read_SymTab(Fd, SymNum, []) of
+                         {ok, SymTab} ->
+                           case read_SymTab_names(SymTab, StrTab) of
+                             {ok, NewSymTab} -> {ok, {NewSymTab, ShNdx}};
+                             {error, _Reason} = Error -> Error
+                           end;
+                         {error, _Reason} = Error -> Error
+                       end;
+                     {error, _Reason} = Error -> Error
+                   end
+               end;
+             {error, _Reason} = Error -> Error
+           end
+      end
+  end.
+
+read_SymTab(_Fd, _SymNum = 0, Syms) -> {ok, lists:reverse(Syms)};
+read_SymTab(Fd, SymNum, Syms) when SymNum > 0 ->
+  case read_Sym(Fd) of
+    {ok, Sym} -> read_SymTab(Fd, SymNum - 1, [Sym | Syms]);
+    {error, _Reason} = Error -> Error
+  end.
+
+find_SymTab(ShTab) -> find_SymTab(ShTab, 0).
+
+find_SymTab([], _I) -> false;
+find_SymTab([#elf32_Shdr{sh_type = ?SHT_SYMTAB} = Shdr | _], I) -> {ok, {Shdr, I}};
+find_SymTab([_Shdr | ShTab], I) -> find_SymTab(ShTab, I + 1).
+
+read_SymTab_names(SymTab, StrTab) ->
+  read_SymTab_names(SymTab, StrTab, []).
+
+read_SymTab_names(_SymTab = [], _StrTab, Acc) -> {ok, lists:reverse(Acc)};
+read_SymTab_names([Sym | SymTab], StrTab, Acc) ->
+  case read_Sym_name(Sym, StrTab) of
+    {ok, NewSym} -> read_SymTab_names(SymTab, StrTab, [NewSym | Acc]);
+    {error, _Reason} = Error -> Error
+  end.
+
+read_Sym_name(Sym = #elf32_Sym{st_name = StName}, StrTab) ->
+  case get_name(StrTab, StName) of
+    {ok, Name} -> {ok, Sym#elf32_Sym{st_name = Name}};
+    {error, _Reason} = Error -> Error
+  end.
+
+read_Sym(Fd) ->
+  Tag = elf32_Sym,
+  Fields =
+    [ fun read_Word/1           % st_name
+    , fun read_Addr/1           % st_value
+    , fun read_Word/1           % st_size
+    , fun read_Uchar/1          % st_info
+    , fun read_Uchar/1          % st_other
+    , fun read_Half/1           % st_shndx
+    ],
+  read_record(Fd, Tag, Fields).
 
 %% Reading records from binary file ============================================
 
@@ -456,6 +686,12 @@ do_read_record([], _Fd, Values) ->
   {ok, list_to_tuple(lists:reverse(Values))}.
 
 %% Reading scalars from binary file ============================================
+
+read_Addr(Fd)  -> read_uint32(Fd).
+read_Half(Fd)  -> read_uint16(Fd).
+read_Off(Fd)   -> read_uint32(Fd).
+read_Uchar(Fd) -> read_byte(Fd).
+read_Word(Fd)  -> read_uint32(Fd).
 
 read_uint16(Fd) -> read_uint(Fd, 2, fun make_uint16/1).
 read_uint32(Fd) -> read_uint(Fd, 4, fun make_uint32/1).
@@ -529,8 +765,21 @@ format_error(Reason) ->
       io_lib:format("wrong e_phentsize ~p", [PhEntSize]);
     {wrong_e_shentsize, ShEntSize} ->
       io_lib:format("wrong e_shentsize ~p", [ShEntSize]);
+    {wrong_strtab_sh_type, ShType, Index} ->
+      io_lib:format("wrong sh_type ~p for string table at index ~p",
+                    [ShType, Index]);
+    {wrong_strtab_index, Index} ->
+      io_lib:format("out of range index ~p for string table", [Index]);
+    {wrong_symtab_sh_entsize, ShEntSize} ->
+      io_lib:format("wrong sh_entsize ~p in symtab section header", [ShEntSize]);
+    {wrong_symtab_sh_size, ShSize} ->
+      io_lib:format("wrong sh_size ~p in symtab section header", [ShSize]);
     eof ->
       "premature EOF";
+    {wrong_index_in_strtab, Index} ->
+      io_lib:format("out of range index ~p in string table", [Index]);
+    strtab_not_nul_terminated ->
+      "string table not NUL-terminated";
     _ ->
       io_lib:format("~p", [Reason])
   end.

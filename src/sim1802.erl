@@ -12,25 +12,19 @@
 
 -spec main([string()]) -> no_return().
 main(Args) ->
-  main(Args, _Trace = false).
+  main(Args, maps:new()).
 
 %% TODO: use my getopt library here
-main(["--trace" | Args], _Trace) -> main(Args, _Trace2 = true);
-main(["-t" | Args], _Trace) -> main(Args, _Trace2 = true);
-main([ImageFile | Args], Trace) ->
+main(["--debug" | Args], Map) -> main(Args, maps:put(debug, true, Map));
+main(["-d" | Args], Map) -> main(Args, maps:put(debug, true, Map));
+main(["--trace" | Args], Map) -> main(Args, maps:put(trace, true, Map));
+main(["-t" | Args], Map) -> main(Args, maps:put(trace, true, Map));
+main([ImageFile | Args], Map) ->
   ok = sim1802_memory:init(),
   SymTab = load(ImageFile, Args),
   ok = sim1802_io:init(),
-  Core = sim1802_core:init(Trace, SymTab),
-  run(Core).
-
-%% Run simulator ===============================================================
-
-run(Core) ->
-  case sim1802_core:step(Core) of
-    {ok, NewCore} -> run(NewCore);
-    {error, {_NewCore, {halt, Status}}} -> halt(Status)
-  end.
+  Core = sim1802_core:init(maps:get(trace, Map, false), SymTab),
+  sim1802_debugger:run(Core, SymTab, Map).
 
 %% Load image file and write boot args =========================================
 

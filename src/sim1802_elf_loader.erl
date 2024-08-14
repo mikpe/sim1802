@@ -18,13 +18,28 @@ load(File) ->
         case load_fd(Fd) of
           {ok, {PC, SymTab}} ->
             install_bootstrap(PC),
-            {ok, SymTab};
+            set_write_protect(SymTab),
+            {ok, sim1802_symtab:init(maps:to_list(SymTab))};
           FalseOrError -> FalseOrError
         end
       after
         file:close(Fd)
       end;
     {error, Reason} -> {error, {file, Reason}}
+  end.
+
+%% Write-protect .text and .rodata =============================================
+
+set_write_protect(SymTab) ->
+  case find_end_of_text_and_rodata(SymTab) of
+    false -> ok;
+    Limit -> sim1802_memory:write_protect(Limit)
+  end.
+
+find_end_of_text_and_rodata(SymTab) ->
+  case maps:get("__DTOR_END__", SymTab, false) of
+    false -> maps:get("_fini", SymTab, false);
+    Address -> Address
   end.
 
 %% Install bootstrap ===========================================================
@@ -198,7 +213,7 @@ install_bootstrap(PC) ->
 
 %% Load ELF executable =========================================================
 
--spec load_fd(file:fd()) -> {ok, {PC :: non_neg_integer(), sim1802_symtab:symtab()}} | false | {error, {module(), term()}}.
+-spec load_fd(file:fd()) -> {ok, {PC :: non_neg_integer(), map()}} | false | {error, {module(), term()}}.
 load_fd(Fd) ->
   case read_Ehdr(Fd) of
     {ok, Ehdr} ->
@@ -209,7 +224,7 @@ load_fd(Fd) ->
              {ok, SymTab0} -> SymTab0;
              {error, Reason} ->
                io:format(standard_error, "No symbol table loaded: ~ts\n", [sim1802:format_error(Reason)]),
-               sim1802_symtab:init([])
+               maps:new()
            end,
          {ok, {PC, SymTab}};
        {error, _Reason} = Error -> Error
@@ -299,7 +314,7 @@ load_SymTab(SymTab) ->
       fun(#elf32_Sym{st_name = StName, st_value = StValue}) ->
         {StName, StValue}
       end, SymTab),
-  {ok, sim1802_symtab:init(Bindings)}.
+  {ok, maps:from_list(Bindings)}.
 
 %% Writing to memory ===========================================================
 

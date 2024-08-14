@@ -8,6 +8,13 @@
         , clear_ef2/0
         , clear_ef3/0
         , clear_ef4/0
+        , get_byte/2
+        , get_d/1
+        , get_df/1
+        , get_p/1
+        , get_r/2
+        , get_word/2
+        , get_x/1
         , halt/2
         , init/2
         , reset/1
@@ -966,12 +973,14 @@ pred_IE_NZ(Core) ->
 
 %% Accessing registers =========================================================
 
+-spec get_d(core()) -> uint8_t().
 get_d(#core{d = D}) ->
   D.
 
 set_d(Core, D) ->
   Core#core{d = D}.
 
+-spec get_df(core()) -> uint1_t().
 get_df(#core{df = DF}) ->
   DF.
 
@@ -984,6 +993,7 @@ get_ie(#core{ie = IE}) ->
 set_ie(Core, IE) ->
   Core#core{ie = IE}.
 
+-spec get_p(core()) -> uint4_t().
 get_p(#core{p = P}) ->
   P.
 
@@ -996,6 +1006,7 @@ get_q(#core{q = Q}) ->
 set_q(Core, Q) ->
   Core#core{q = Q}.
 
+-spec get_r(core(), uint4_t()) -> uint16_t().
 get_r(#core{r = R}, N) ->
   element(N + 1, R).
 
@@ -1008,6 +1019,7 @@ get_t(#core{t = T}) ->
 set_t(Core, T) ->
   Core#core{t = T}.
 
+-spec get_x(core()) -> uint4_t().
 get_x(#core{x = X}) ->
   X.
 
@@ -1033,9 +1045,11 @@ set_signal(Signal) ->
 
 %% Memory accesses =============================================================
 
+-spec get_byte(core(), uint16_t()) -> uint8_t().
 get_byte(_Core, Address) ->
   sim1802_memory:get_byte(Address).
 
+-spec get_word(core(), uint16_t()) -> uint16_t().
 get_word(Core, Address) ->
   High = get_byte(Core, Address),
   Low = get_byte(Core, uint16_inc(Address)),

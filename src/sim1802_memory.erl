@@ -9,6 +9,8 @@
 -export([ init/0
         , get_byte/1
         , set_byte/2
+        , write_protect/1
+        , is_write_protected/1
         ]).
 
 -export_type([ address/0
@@ -38,3 +40,15 @@ get_byte(Address) ->
 set_byte(Address, Byte) ->
   ets:insert(?ETS, {Address, Byte}),
   ok.
+
+-spec write_protect(address()) -> ok.
+write_protect(Limit) ->
+  ets:insert(?ETS, {write_protect, Limit}),
+  ok.
+
+-spec is_write_protected(address()) -> boolean().
+is_write_protected(Address) ->
+  case ets:lookup(?ETS, write_protect) of
+    [{_, Limit}] -> Address < Limit;
+    [] -> false
+  end.

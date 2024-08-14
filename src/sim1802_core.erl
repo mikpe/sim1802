@@ -267,6 +267,10 @@ clear_ef4() ->
 halt(Core, Status) ->
   throw({Core, {halt, Status}}).
 
+-spec trap(core(), iodata()) -> no_return().
+trap(Core, Reason) ->
+  throw({Core, Reason}).
+
 %% Instruction sequencing ======================================================
 
 do_step(Core) ->
@@ -796,7 +800,7 @@ long_skip(Core, Pred) ->
 emu_IDL(Core) ->
   case pred_IE_NZ(Core) of
     true -> sim1802_io:wait_interrupt(), Core;
-    false -> halt(Core, deadlock)
+    false -> trap(Core, "deadlock")
   end.
 
 emu_NOP(Core) ->
@@ -1056,8 +1060,13 @@ get_word(Core, Address) ->
   make_word(High, Low).
 
 set_byte(Core, Address, Byte) ->
-  sim1802_memory:set_byte(Address, Byte),
-  Core.
+  case sim1802_memory:is_write_protected(Address) of
+    true ->
+      trap(Core, io_lib:format("write to write-protected address 0x~4.16.0B", [Address]));
+    false ->
+      sim1802_memory:set_byte(Address, Byte),
+      Core
+  end.
 
 set_word(Core, Address, Word) ->
   Core1 = set_byte(Core, Address, get_high(Word)),

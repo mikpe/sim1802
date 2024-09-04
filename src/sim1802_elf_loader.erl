@@ -265,9 +265,13 @@ load_phdr(Fd, Phdr) ->
              , p_vaddr = VAddr
              , p_filesz = FileSz
              } = Phdr,
-  case seek(Fd, Offset) of
-    ok -> copy_file_to_core(Fd, VAddr, FileSz);
-    {error, _Reason} = Error -> Error
+  case VAddr + FileSz =< 65536 - 256 of
+    true ->
+      case seek(Fd, Offset) of
+        ok -> copy_file_to_core(Fd, VAddr, FileSz);
+        {error, _Reason} = Error -> Error
+      end;
+    false -> {error, {?MODULE, program_too_large}}
   end.
 
 copy_file_to_core(_Fd, _VAddr, _FileSz = 0) -> ok;
@@ -795,6 +799,8 @@ format_error(Reason) ->
       io_lib:format("out of range index ~p in string table", [Index]);
     strtab_not_nul_terminated ->
       "string table not NUL-terminated";
+    program_too_large ->
+      "program too large for 16-bit address space";
     _ ->
       io_lib:format("~p", [Reason])
   end.

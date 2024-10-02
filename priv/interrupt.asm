@@ -41,7 +41,7 @@ SP	EQU	002H		; STACK POINTER FOR BOTH
 	BYTE	080H		; TIMER_WRITE_CONTROL, i.e. enable 0.1Hz timer interrupts
 	;; Enable interrupts
 	RET
-	BYTE	020H		; fake T=<X:2,P=0>
+	BYTE	020H		; fake T=<X:2,P:0>
 	;; Wait for interrupt
 	IDL
 	;; Got an interrupt, output "OK\n" and halt

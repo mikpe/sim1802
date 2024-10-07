@@ -284,19 +284,18 @@ copy_file_to_core(Fd, VAddr, FileSz) ->
   end.
 
 is_valid_phdr(Phdr) ->
-  #elf32_Phdr{ p_offset = Offset
-             , p_vaddr = VAddr
+  #elf32_Phdr{ p_offset = _Offset
+             , p_vaddr = _VAddr
              , p_filesz = FileSz
              , p_memsz = MemSz
              , p_flags = Flags
              } = Phdr,
-
-  is_page_aligned(Offset) andalso
-  is_page_aligned(VAddr) andalso
+%  is_page_aligned(Offset) andalso
+%  is_page_aligned(VAddr) andalso
   MemSz >= FileSz andalso
   no_excess_flags(Flags).
 
-is_page_aligned(Offset) -> (Offset band (?PAGE_SIZE - 1)) =:= 0.
+%is_page_aligned(Offset) -> (Offset band (?PAGE_SIZE - 1)) =:= 0.
 
 no_excess_flags(Flags) -> (Flags band 8#7) =:= Flags.
 

@@ -1,7 +1,7 @@
 sim1802
 =======
 
-Simulator for the RCA CDP1802 processor
+Simulator for the [RCA CDP1802](https://en.wikipedia.org/wiki/RCA_1802) processor
 
 Build
 -----

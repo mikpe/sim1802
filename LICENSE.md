@@ -171,7 +171,7 @@ accepting any such warranty or additional liability.
 
 END OF TERMS AND CONDITIONS
 
-Copyright 2024, Mikael Pettersson <mikpelinux@gmail.com>.
+Copyright 2024-2025, Mikael Pettersson <mikpelinux@gmail.com>.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

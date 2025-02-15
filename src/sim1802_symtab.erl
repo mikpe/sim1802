@@ -17,12 +17,11 @@
 -type address() :: non_neg_integer().
 -type name() :: string().
 -type offset() :: non_neg_integer().
--type symtab() :: false | ets:tid().
+-type symtab() :: ets:tid().
 
 %% API =========================================================================
 
 -spec init([{name(), address()}]) -> symtab().
-init([]) -> false;
 init(Syms) ->
   ETS = ets:new(undefined, [ordered_set]),
   lists:foreach(
@@ -32,7 +31,6 @@ init(Syms) ->
   ETS.
 
 -spec resolve(symtab(), address()) -> false | {name(), offset()}.
-resolve(false, _Address) -> false;
 resolve(ETS, Address) ->
   case ets:lookup(ETS, Address) of
     [{_Address, Name}] -> {Name, 0};

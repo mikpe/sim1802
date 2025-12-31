@@ -6,7 +6,9 @@ REBAR3_GIT=https://github.com/erlang/rebar3.git
 REBAR3_VSN=3.25.1
 TRIPLET=cdp1802-unknown-elf
 
-build:	$(REBAR3)
+SOURCES=$(shell echo src/*.erl)
+
+_build/default/bin/sim1802:	$(REBAR3) $(SOURCES)
 	$(REBAR3) do compile, xref, dialyzer, escriptize
 	mkdir -p bin
 	ln -sf ../_build/default/bin/sim1802 bin/
@@ -14,7 +16,7 @@ build:	$(REBAR3)
 test:	$(REBAR3)
 	$(REBAR3) eunit
 
-install:	$(BUILD)
+install:	_build/default/bin/sim1802
 	mkdir -p $(PREFIX)/bin
 	cp _build/default/bin/sim1802 $(PREFIX)/bin/$(TRIPLET)-sim
 	mkdir -p $(PREFIX)/dejagnu

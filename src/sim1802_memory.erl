@@ -2,7 +2,8 @@
 %%%
 %%% CDP1802 memory simulation
 %%%
-%%% We simulate a 64KB RAM initialized to all bits zero, stored in an ETS table.
+%%% - 64KB RAM initialized to all bits zero, stored in an atomics array
+%%% - an initial portion of the RAM can be marked as write-protected
 
 -module(sim1802_memory).
 
@@ -19,36 +20,33 @@
 -define(UINT16_MAX, ((1 bsl 16) - 1)).
 -type address() :: 0..?UINT16_MAX.
 
--define(ETS, ?MODULE).
+%% persistent_term keys
+-define(ATOMICS, ?MODULE).
+-define(WP, sim1802_memory_write_protect).
 
 %% API =========================================================================
 
 -spec init() -> ok.
 init() ->
-  ets:new(?ETS, [named_table, public]),
+  A = atomics:new(65536, []),
+  persistent_term:put(?ATOMICS, A),
   ok.
 
 -spec get_byte(address()) -> byte().
-%% TODO: for OTP >= 26 use ets:lookup_element/4
 get_byte(Address) ->
-  case ets:lookup(?ETS, Address) of
-    [{_Address, Byte}] -> Byte;
-    [] -> 0
-  end.
+  A = persistent_term:get(?ATOMICS),
+  atomics:get(A, Address + 1).
 
 -spec set_byte(address(), byte()) -> ok.
 set_byte(Address, Byte) ->
-  ets:insert(?ETS, {Address, Byte}),
-  ok.
+  A = persistent_term:get(?ATOMICS),
+  atomics:put(A, Address + 1, Byte).
 
 -spec write_protect(address()) -> ok.
 write_protect(Limit) ->
-  ets:insert(?ETS, {write_protect, Limit}),
-  ok.
+  persistent_term:put(?WP, Limit).
 
 -spec is_write_protected(address()) -> boolean().
 is_write_protected(Address) ->
-  case ets:lookup(?ETS, write_protect) of
-    [{_, Limit}] -> Address < Limit;
-    [] -> false
-  end.
+  Limit = persistent_term:get(?WP, 0),
+  Address < Limit.

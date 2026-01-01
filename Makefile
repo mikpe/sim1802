@@ -8,6 +8,8 @@ TRIPLET=cdp1802-unknown-elf
 
 SOURCES=$(shell echo src/*.erl)
 
+build:	_build/default/bin/sim1802
+
 _build/default/bin/sim1802:	$(REBAR3) $(SOURCES)
 	$(REBAR3) do compile, xref, dialyzer, escriptize
 	mkdir -p bin

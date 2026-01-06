@@ -179,10 +179,8 @@
 -define(OP_DADI, 16#FC). % 68FC: DECIMAL ADD IMMEDIATE
 -define(OP_DSMI, 16#FF). % 68FF: DECIMAL SUBTRACT MEMORY, IMMEDIATE
 
-%% Simulator debugging opcodes, all prefixed by 16#68.
+%% Simulator debugging opcodes, 681[0-F].
 -define(OP_DBG0, 16#10). % 6810: print PC and SP
--define(OP_DBG1, 16#11). % 6811: print PC, SP, r7, r10, r15
--define(OP_DBG2, 16#12). % 6812: print PC, SP, argv[1] (*(void*)(r8+2))
 -define(OP_NYI,  16#1F). % 681F: print D and exit 98
 
 %% ETS for recording state of input signals.
@@ -416,8 +414,6 @@ execute_68(Core, Opcode) ->
     _ ->
       case Opcode of
         ?OP_DBG0 -> emu_DBG0(Core); % 6810
-        ?OP_DBG1 -> emu_DBG1(Core); % 6811
-        ?OP_DBG2 -> emu_DBG2(Core); % 6812
         ?OP_NYI  -> emu_NYI(Core);  % 681F
         ?OP_DADC -> emu_DADC(Core); % 6874
         ?OP_DSMB -> emu_DSMB(Core); % 6877
@@ -437,18 +433,6 @@ execute_68(Core, Opcode) ->
 emu_DBG0(Core) -> % print PC and SP
   io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B\n",
             [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2)]),
-  Core.
-
-emu_DBG1(Core) -> % print PC, SP, r7, r10, r15
-  io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B R7 0x~4.16.0B R10 0x~4.16.0B R15 0x~4.16.0B\n",
-            [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2), get_r(Core, 7), get_r(Core, 10), get_r(Core, 15)]),
-  Core.
-
-emu_DBG2(Core) -> % print PC, SP, argv[1] (*(void*)(r8+2))
-  Address = uint16_inc2(get_r(Core, 8)),
-  Argv1 = get_word(Core, Address),
-  io:format(standard_error, "@ PC 0x~4.16.0B SP 0x~4.16.0B &argv[1] 0x~4.16.0B argv[1] 0x~4.16.0B\n",
-            [uint16_dec2(get_r(Core, get_p(Core))), get_r(Core, 2), Address, Argv1]),
   Core.
 
 %% silence "Function emu_NYI/1 has no local return"

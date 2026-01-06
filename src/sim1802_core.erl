@@ -301,6 +301,55 @@ trace(#core{symtab = SymTab}, A, Opcode) ->
 execute(Core, Opcode) ->
   case Opcode of
     ?OP_IDL  -> emu_IDL(Core);  % 00
+    ?OP_LDN+16#1 -> emu_LDN(Core, 16#1); % 01
+    ?OP_LDN+16#2 -> emu_LDN(Core, 16#2); % 02
+    ?OP_LDN+16#3 -> emu_LDN(Core, 16#3); % 03
+    ?OP_LDN+16#4 -> emu_LDN(Core, 16#4); % 04
+    ?OP_LDN+16#5 -> emu_LDN(Core, 16#5); % 05
+    ?OP_LDN+16#6 -> emu_LDN(Core, 16#6); % 06
+    ?OP_LDN+16#7 -> emu_LDN(Core, 16#7); % 07
+    ?OP_LDN+16#8 -> emu_LDN(Core, 16#8); % 08
+    ?OP_LDN+16#9 -> emu_LDN(Core, 16#9); % 09
+    ?OP_LDN+16#A -> emu_LDN(Core, 16#A); % 0A
+    ?OP_LDN+16#B -> emu_LDN(Core, 16#B); % 0B
+    ?OP_LDN+16#C -> emu_LDN(Core, 16#C); % 0C
+    ?OP_LDN+16#D -> emu_LDN(Core, 16#D); % 0D
+    ?OP_LDN+16#E -> emu_LDN(Core, 16#E); % 0E
+    ?OP_LDN+16#F -> emu_LDN(Core, 16#F); % 0F
+
+    ?OP_INC+16#0 -> emu_INC(Core, 16#0); % 10
+    ?OP_INC+16#1 -> emu_INC(Core, 16#1); % 11
+    ?OP_INC+16#2 -> emu_INC(Core, 16#2); % 12
+    ?OP_INC+16#3 -> emu_INC(Core, 16#3); % 13
+    ?OP_INC+16#4 -> emu_INC(Core, 16#4); % 14
+    ?OP_INC+16#5 -> emu_INC(Core, 16#5); % 15
+    ?OP_INC+16#6 -> emu_INC(Core, 16#6); % 16
+    ?OP_INC+16#7 -> emu_INC(Core, 16#7); % 17
+    ?OP_INC+16#8 -> emu_INC(Core, 16#8); % 18
+    ?OP_INC+16#9 -> emu_INC(Core, 16#9); % 19
+    ?OP_INC+16#A -> emu_INC(Core, 16#A); % 1A
+    ?OP_INC+16#B -> emu_INC(Core, 16#B); % 1B
+    ?OP_INC+16#C -> emu_INC(Core, 16#C); % 1C
+    ?OP_INC+16#D -> emu_INC(Core, 16#D); % 1D
+    ?OP_INC+16#E -> emu_INC(Core, 16#E); % 1E
+    ?OP_INC+16#F -> emu_INC(Core, 16#F); % 1F
+
+    ?OP_DEC+16#0 -> emu_DEC(Core, 16#0); % 20
+    ?OP_DEC+16#1 -> emu_DEC(Core, 16#1); % 21
+    ?OP_DEC+16#2 -> emu_DEC(Core, 16#2); % 22
+    ?OP_DEC+16#3 -> emu_DEC(Core, 16#3); % 23
+    ?OP_DEC+16#4 -> emu_DEC(Core, 16#4); % 24
+    ?OP_DEC+16#5 -> emu_DEC(Core, 16#5); % 25
+    ?OP_DEC+16#6 -> emu_DEC(Core, 16#6); % 26
+    ?OP_DEC+16#7 -> emu_DEC(Core, 16#7); % 27
+    ?OP_DEC+16#8 -> emu_DEC(Core, 16#8); % 28
+    ?OP_DEC+16#9 -> emu_DEC(Core, 16#9); % 29
+    ?OP_DEC+16#A -> emu_DEC(Core, 16#A); % 2A
+    ?OP_DEC+16#B -> emu_DEC(Core, 16#B); % 2B
+    ?OP_DEC+16#C -> emu_DEC(Core, 16#C); % 2C
+    ?OP_DEC+16#D -> emu_DEC(Core, 16#D); % 2D
+    ?OP_DEC+16#E -> emu_DEC(Core, 16#E); % 2E
+    ?OP_DEC+16#F -> emu_DEC(Core, 16#F); % 2F
 
     ?OP_BR   -> emu_BR(Core);   % 30
     ?OP_BQ   -> emu_BQ(Core);   % 31
@@ -319,8 +368,56 @@ execute(Core, Opcode) ->
     ?OP_BN3  -> emu_BN3(Core);  % 3E
     ?OP_BN4  -> emu_BN4(Core);  % 3F
 
+    ?OP_LDA+16#0 -> emu_LDA(Core, 16#0); % 40
+    ?OP_LDA+16#1 -> emu_LDA(Core, 16#1); % 41
+    ?OP_LDA+16#2 -> emu_LDA(Core, 16#2); % 42
+    ?OP_LDA+16#3 -> emu_LDA(Core, 16#3); % 43
+    ?OP_LDA+16#4 -> emu_LDA(Core, 16#4); % 44
+    ?OP_LDA+16#5 -> emu_LDA(Core, 16#5); % 45
+    ?OP_LDA+16#6 -> emu_LDA(Core, 16#6); % 46
+    ?OP_LDA+16#7 -> emu_LDA(Core, 16#7); % 47
+    ?OP_LDA+16#8 -> emu_LDA(Core, 16#8); % 48
+    ?OP_LDA+16#9 -> emu_LDA(Core, 16#9); % 49
+    ?OP_LDA+16#A -> emu_LDA(Core, 16#A); % 4A
+    ?OP_LDA+16#B -> emu_LDA(Core, 16#B); % 4B
+    ?OP_LDA+16#C -> emu_LDA(Core, 16#C); % 4C
+    ?OP_LDA+16#D -> emu_LDA(Core, 16#D); % 4D
+    ?OP_LDA+16#E -> emu_LDA(Core, 16#E); % 4E
+    ?OP_LDA+16#F -> emu_LDA(Core, 16#F); % 4F
+
+    ?OP_STR+16#0 -> emu_STR(Core, 16#0); % 50
+    ?OP_STR+16#1 -> emu_STR(Core, 16#1); % 51
+    ?OP_STR+16#2 -> emu_STR(Core, 16#2); % 52
+    ?OP_STR+16#3 -> emu_STR(Core, 16#3); % 53
+    ?OP_STR+16#4 -> emu_STR(Core, 16#4); % 54
+    ?OP_STR+16#5 -> emu_STR(Core, 16#5); % 55
+    ?OP_STR+16#6 -> emu_STR(Core, 16#6); % 56
+    ?OP_STR+16#7 -> emu_STR(Core, 16#7); % 57
+    ?OP_STR+16#8 -> emu_STR(Core, 16#8); % 58
+    ?OP_STR+16#9 -> emu_STR(Core, 16#9); % 59
+    ?OP_STR+16#A -> emu_STR(Core, 16#A); % 5A
+    ?OP_STR+16#B -> emu_STR(Core, 16#B); % 5B
+    ?OP_STR+16#C -> emu_STR(Core, 16#C); % 5C
+    ?OP_STR+16#D -> emu_STR(Core, 16#D); % 5D
+    ?OP_STR+16#E -> emu_STR(Core, 16#E); % 5E
+    ?OP_STR+16#F -> emu_STR(Core, 16#F); % 5F
+
     ?OP_IRX  -> emu_IRX(Core);  % 60
+    ?OP_OUT+16#1 -> emu_OUT(Core, 16#1); % 61
+    ?OP_OUT+16#2 -> emu_OUT(Core, 16#2); % 62
+    ?OP_OUT+16#3 -> emu_OUT(Core, 16#3); % 63
+    ?OP_OUT+16#4 -> emu_OUT(Core, 16#4); % 64
+    ?OP_OUT+16#5 -> emu_OUT(Core, 16#5); % 65
+    ?OP_OUT+16#6 -> emu_OUT(Core, 16#6); % 66
+    ?OP_OUT+16#7 -> emu_OUT(Core, 16#7); % 67
     ?OP_68   -> emu_68(Core);   % 68
+    ?OP_INP+16#9 -> emu_INP(Core, 16#9); % 69
+    ?OP_INP+16#A -> emu_INP(Core, 16#A); % 6A
+    ?OP_INP+16#B -> emu_INP(Core, 16#B); % 6B
+    ?OP_INP+16#C -> emu_INP(Core, 16#C); % 6C
+    ?OP_INP+16#D -> emu_INP(Core, 16#D); % 6D
+    ?OP_INP+16#E -> emu_INP(Core, 16#E); % 6E
+    ?OP_INP+16#F -> emu_INP(Core, 16#F); % 6F
 
     ?OP_RET  -> emu_RET(Core);  % 70
     ?OP_DIS  -> emu_DIS(Core);  % 71
@@ -339,6 +436,74 @@ execute(Core, Opcode) ->
     ?OP_SHLC -> emu_SHLC(Core); % 7E
     ?OP_SMBI -> emu_SMBI(Core); % 7F
 
+    ?OP_GLO+16#0 -> emu_GLO(Core, 16#0); % 80
+    ?OP_GLO+16#1 -> emu_GLO(Core, 16#1); % 81
+    ?OP_GLO+16#2 -> emu_GLO(Core, 16#2); % 82
+    ?OP_GLO+16#3 -> emu_GLO(Core, 16#3); % 83
+    ?OP_GLO+16#4 -> emu_GLO(Core, 16#4); % 84
+    ?OP_GLO+16#5 -> emu_GLO(Core, 16#5); % 85
+    ?OP_GLO+16#6 -> emu_GLO(Core, 16#6); % 86
+    ?OP_GLO+16#7 -> emu_GLO(Core, 16#7); % 87
+    ?OP_GLO+16#8 -> emu_GLO(Core, 16#8); % 88
+    ?OP_GLO+16#9 -> emu_GLO(Core, 16#9); % 89
+    ?OP_GLO+16#A -> emu_GLO(Core, 16#A); % 8A
+    ?OP_GLO+16#B -> emu_GLO(Core, 16#B); % 8B
+    ?OP_GLO+16#C -> emu_GLO(Core, 16#C); % 8C
+    ?OP_GLO+16#D -> emu_GLO(Core, 16#D); % 8D
+    ?OP_GLO+16#E -> emu_GLO(Core, 16#E); % 8E
+    ?OP_GLO+16#F -> emu_GLO(Core, 16#F); % 8F
+
+    ?OP_GHI+16#0 -> emu_GHI(Core, 16#0); % 90
+    ?OP_GHI+16#1 -> emu_GHI(Core, 16#1); % 91
+    ?OP_GHI+16#2 -> emu_GHI(Core, 16#2); % 92
+    ?OP_GHI+16#3 -> emu_GHI(Core, 16#3); % 93
+    ?OP_GHI+16#4 -> emu_GHI(Core, 16#4); % 94
+    ?OP_GHI+16#5 -> emu_GHI(Core, 16#5); % 95
+    ?OP_GHI+16#6 -> emu_GHI(Core, 16#6); % 96
+    ?OP_GHI+16#7 -> emu_GHI(Core, 16#7); % 97
+    ?OP_GHI+16#8 -> emu_GHI(Core, 16#8); % 98
+    ?OP_GHI+16#9 -> emu_GHI(Core, 16#9); % 99
+    ?OP_GHI+16#A -> emu_GHI(Core, 16#A); % 9A
+    ?OP_GHI+16#B -> emu_GHI(Core, 16#B); % 9B
+    ?OP_GHI+16#C -> emu_GHI(Core, 16#C); % 9C
+    ?OP_GHI+16#D -> emu_GHI(Core, 16#D); % 9D
+    ?OP_GHI+16#E -> emu_GHI(Core, 16#E); % 9E
+    ?OP_GHI+16#F -> emu_GHI(Core, 16#F); % 9F
+
+    ?OP_PLO+16#0 -> emu_PLO(Core, 16#0); % A0
+    ?OP_PLO+16#1 -> emu_PLO(Core, 16#1); % A1
+    ?OP_PLO+16#2 -> emu_PLO(Core, 16#2); % A2
+    ?OP_PLO+16#3 -> emu_PLO(Core, 16#3); % A3
+    ?OP_PLO+16#4 -> emu_PLO(Core, 16#4); % A4
+    ?OP_PLO+16#5 -> emu_PLO(Core, 16#5); % A5
+    ?OP_PLO+16#6 -> emu_PLO(Core, 16#6); % A6
+    ?OP_PLO+16#7 -> emu_PLO(Core, 16#7); % A7
+    ?OP_PLO+16#8 -> emu_PLO(Core, 16#8); % A8
+    ?OP_PLO+16#9 -> emu_PLO(Core, 16#9); % A9
+    ?OP_PLO+16#A -> emu_PLO(Core, 16#A); % AA
+    ?OP_PLO+16#B -> emu_PLO(Core, 16#B); % AB
+    ?OP_PLO+16#C -> emu_PLO(Core, 16#C); % AC
+    ?OP_PLO+16#D -> emu_PLO(Core, 16#D); % AD
+    ?OP_PLO+16#E -> emu_PLO(Core, 16#E); % AE
+    ?OP_PLO+16#F -> emu_PLO(Core, 16#F); % AF
+
+    ?OP_PHI+16#0 -> emu_PHI(Core, 16#0); % B0
+    ?OP_PHI+16#1 -> emu_PHI(Core, 16#1); % B1
+    ?OP_PHI+16#2 -> emu_PHI(Core, 16#2); % B2
+    ?OP_PHI+16#3 -> emu_PHI(Core, 16#3); % B3
+    ?OP_PHI+16#4 -> emu_PHI(Core, 16#4); % B4
+    ?OP_PHI+16#5 -> emu_PHI(Core, 16#5); % B5
+    ?OP_PHI+16#6 -> emu_PHI(Core, 16#6); % B6
+    ?OP_PHI+16#7 -> emu_PHI(Core, 16#7); % B7
+    ?OP_PHI+16#8 -> emu_PHI(Core, 16#8); % B8
+    ?OP_PHI+16#9 -> emu_PHI(Core, 16#9); % B9
+    ?OP_PHI+16#A -> emu_PHI(Core, 16#A); % BA
+    ?OP_PHI+16#B -> emu_PHI(Core, 16#B); % BB
+    ?OP_PHI+16#C -> emu_PHI(Core, 16#C); % BC
+    ?OP_PHI+16#D -> emu_PHI(Core, 16#D); % BD
+    ?OP_PHI+16#E -> emu_PHI(Core, 16#E); % BE
+    ?OP_PHI+16#F -> emu_PHI(Core, 16#F); % BF
+
     ?OP_LBR  -> emu_LBR(Core);  % C0
     ?OP_LBQ  -> emu_LBQ(Core);  % C1
     ?OP_LBZ  -> emu_LBZ(Core);  % C2
@@ -356,6 +521,40 @@ execute(Core, Opcode) ->
     ?OP_LSZ  -> emu_LSZ(Core);  % CE
     ?OP_LSDF -> emu_LSDF(Core); % CF
 
+    ?OP_SEP+16#0 -> emu_SEP(Core, 16#0); % D0
+    ?OP_SEP+16#1 -> emu_SEP(Core, 16#1); % D1
+    ?OP_SEP+16#2 -> emu_SEP(Core, 16#2); % D2
+    ?OP_SEP+16#3 -> emu_SEP(Core, 16#3); % D3
+    ?OP_SEP+16#4 -> emu_SEP(Core, 16#4); % D4
+    ?OP_SEP+16#5 -> emu_SEP(Core, 16#5); % D5
+    ?OP_SEP+16#6 -> emu_SEP(Core, 16#6); % D6
+    ?OP_SEP+16#7 -> emu_SEP(Core, 16#7); % D7
+    ?OP_SEP+16#8 -> emu_SEP(Core, 16#8); % D8
+    ?OP_SEP+16#9 -> emu_SEP(Core, 16#9); % D9
+    ?OP_SEP+16#A -> emu_SEP(Core, 16#A); % DA
+    ?OP_SEP+16#B -> emu_SEP(Core, 16#B); % DB
+    ?OP_SEP+16#C -> emu_SEP(Core, 16#C); % DC
+    ?OP_SEP+16#D -> emu_SEP(Core, 16#D); % DD
+    ?OP_SEP+16#E -> emu_SEP(Core, 16#E); % DE
+    ?OP_SEP+16#F -> emu_SEP(Core, 16#F); % DF
+
+    ?OP_SEX+16#0 -> emu_SEX(Core, 16#0); % E0
+    ?OP_SEX+16#1 -> emu_SEX(Core, 16#1); % E1
+    ?OP_SEX+16#2 -> emu_SEX(Core, 16#2); % E2
+    ?OP_SEX+16#3 -> emu_SEX(Core, 16#3); % E3
+    ?OP_SEX+16#4 -> emu_SEX(Core, 16#4); % E4
+    ?OP_SEX+16#5 -> emu_SEX(Core, 16#5); % E5
+    ?OP_SEX+16#6 -> emu_SEX(Core, 16#6); % E6
+    ?OP_SEX+16#7 -> emu_SEX(Core, 16#7); % E7
+    ?OP_SEX+16#8 -> emu_SEX(Core, 16#8); % E8
+    ?OP_SEX+16#9 -> emu_SEX(Core, 16#9); % E9
+    ?OP_SEX+16#A -> emu_SEX(Core, 16#A); % EA
+    ?OP_SEX+16#B -> emu_SEX(Core, 16#B); % EB
+    ?OP_SEX+16#C -> emu_SEX(Core, 16#C); % EC
+    ?OP_SEX+16#D -> emu_SEX(Core, 16#D); % ED
+    ?OP_SEX+16#E -> emu_SEX(Core, 16#E); % EE
+    ?OP_SEX+16#F -> emu_SEX(Core, 16#F); % EF
+
     ?OP_LDX  -> emu_LDX(Core);  % F0
     ?OP_OR   -> emu_OR(Core);   % F1
     ?OP_AND  -> emu_AND(Core);  % F2
@@ -371,28 +570,7 @@ execute(Core, Opcode) ->
     ?OP_ADI  -> emu_ADI(Core);  % FC
     ?OP_SDI  -> emu_SDI(Core);  % FD
     ?OP_SHL  -> emu_SHL(Core);  % FE
-    ?OP_SMI  -> emu_SMI(Core);  % FF
-
-    _ ->
-      N = Opcode band 16#0F,
-      case Opcode bsr 4 of
-        ?OP_LDN bsr 4 -> emu_LDN(Core, N); % 0N, N NOT 0, 00 = IDL handled above
-        ?OP_INC bsr 4 -> emu_INC(Core, N); % 1N
-        ?OP_DEC bsr 4 -> emu_DEC(Core, N); % 2N
-        ?OP_LDA bsr 4 -> emu_LDA(Core, N); % 4N
-        ?OP_STR bsr 4 -> emu_STR(Core, N); % 5N
-        16#60   bsr 4 -> % 60 and 68 handled above
-          case N >= 9 of
-            true      -> emu_INP(Core, N); % 6N, N=9-F
-            false     -> emu_OUT(Core, N)  % 6N, N=1-7
-          end;
-        ?OP_GLO bsr 4 -> emu_GLO(Core, N); % 8N
-        ?OP_GHI bsr 4 -> emu_GHI(Core, N); % 9N
-        ?OP_PLO bsr 4 -> emu_PLO(Core, N); % AN
-        ?OP_PHI bsr 4 -> emu_PHI(Core, N); % BN
-        ?OP_SEP bsr 4 -> emu_SEP(Core, N); % DN
-        ?OP_SEX bsr 4 -> emu_SEX(Core, N)  % EN
-      end
+    ?OP_SMI  -> emu_SMI(Core)   % FF
   end.
 
 emu_68(Core) ->
@@ -477,7 +655,6 @@ emu_PHI(Core, N) ->
 %% Memory Reference ============================================================
 
 emu_LDN(Core, N) ->
-  true = N =/= 0, % assert
   A = get_r(Core, N),
   set_d(Core, get_byte(Core, A)).
 

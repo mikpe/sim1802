@@ -24,7 +24,11 @@ main([ImageFile | Args], Map) ->
   SymTab = load(ImageFile, Args),
   ok = sim1802_io:init(),
   Core = sim1802_core:init(maps:get(trace, Map, false), SymTab),
-  sim1802_debugger:run(Core, SymTab, Map).
+  sim1802_debugger:run(Core, SymTab, Map);
+main([], _Map) ->
+  Progname = filename:basename(escript:script_name()),
+  io:format("Usage: ~s [-d/--debug] [-t/--trace] <executable> <arguments..>\n", [Progname]),
+  halt(1).
 
 %% Load image file and write boot args =========================================
 

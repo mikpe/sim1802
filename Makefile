@@ -3,7 +3,7 @@
 SHELL=/bin/bash
 REBAR3=$(shell type -p rebar3 || echo ./rebar3)
 REBAR3_GIT=https://github.com/erlang/rebar3.git
-REBAR3_VSN=3.25.1
+REBAR3_VSN=3.27.0
 TRIPLET=cdp1802-unknown-elf
 
 SOURCES=$(shell echo src/*.erl)
